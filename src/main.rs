@@ -9,10 +9,26 @@ use std::{
 fn handle_connection(mut stream: TcpStream) {
     let buf_reader: BufReader<&TcpStream> = BufReader::new(&stream);
     let mut lines: std::io::Lines<BufReader<&TcpStream>> = buf_reader.lines();
-    let request_line: String = lines.next().unwrap().unwrap();
+    
+    let request_line: String = match lines.next() {
+        Some(Ok(line)) => line,
+        Some(Err(_)) => {
+            let response: &'static str = "HTTP/1.1 400 BAD REQUEST\r\nContent-Length: 19\r\nContent-Type: text/plain\r\n\r\nError reading request";
+            stream.write_all(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            return;
+        },
+        None => {
+            let response: &'static str = "HTTP/1.1 400 BAD REQUEST\r\nContent-Length: 13\r\nContent-Type: text/plain\r\n\r\nEmpty request";
+            stream.write_all(response.as_bytes()).unwrap();
+            stream.flush().unwrap();
+            return;
+        }
+    };
+    
     let _http_request: Vec<_> = lines
         .by_ref()
-        .map(|result: Result<String, std::io::Error>| result.unwrap())
+        .filter_map(|result: Result<String, std::io::Error>| result.ok())
         .take_while(|line: &String| !line.is_empty())
         .collect();
     
