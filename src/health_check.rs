@@ -33,10 +33,27 @@ pub fn get_service_config(service_name: &str) -> Option<HealthCheckConfig> {
     })
 }
 
+pub fn resolve_host(host: &str) -> Option<String> {
+    if let Ok(ip) = host.parse::<std::net::IpAddr>() {
+        return Some(ip.to_string());
+    }
+
+    use std::net::ToSocketAddrs;
+    match (host, 0).to_socket_addrs() {
+        Ok(mut ips) => ips.next().map(|socket_addr| socket_addr.ip().to_string()),
+        Err(_) => None,
+    }
+}
+
 pub fn check_service_health(config: &HealthCheckConfig) -> bool {
+    let host: Option<String> = resolve_host(&config.host);
+    if host.is_none() {
+        return false;
+    };
+
     match config.protocol.as_str() {
-        "TCP" => check_tcp_health(&config.host, config.port),
-        "UDP" => check_udp_health(&config.host, config.port),
+        "TCP" => check_tcp_health(host.unwrap().as_str(), config.port),
+        "UDP" => check_udp_health(host.unwrap().as_str(), config.port),
         _ => false,
     }
 }
