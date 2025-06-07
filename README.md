@@ -43,8 +43,12 @@ services:
     ports:
       - 8080:8080
     environment:
-      - WEB_HEALTH_HOST=1.1.1.1
-      - WEB_HEALTH_PORT=53
+      - WEB_HEALTH_HOST=google.com
+      - WEB_HEALTH_PORT=80
       - WEB_HEALTH_TYPE=TCP
+      
+      - DNS_HEALTH_HOST=1.1.1.1
+      - DNS_HEALTH_PORT=53
+      - DNS_HEALTH_TYPE=TCP
     restart: always
 ```

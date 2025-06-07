@@ -32,8 +32,14 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line: &String| !line.is_empty())
         .collect();
     
-    let (status_line, content) = if request_line.starts_with("GET /") && request_line.ends_with(" HTTP/1.1") {
-        let path: &str = request_line[5..request_line.len()-9].trim();
+    let (status_line, content) = if request_line.starts_with("GET /") && (request_line.ends_with(" HTTP/1.1") || request_line.ends_with(" HTTP/2.0")) {
+        let path: &str = request_line
+            .split_whitespace()
+            .nth(1)
+            .unwrap_or("")
+            .trim()
+            .strip_prefix('/')
+            .unwrap_or("");
         
         match path {
             "" => ("HTTP/1.1 200 OK", "Hello World!".to_string()),
