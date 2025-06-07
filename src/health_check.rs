@@ -43,8 +43,11 @@ pub fn check_service_health(config: &HealthCheckConfig) -> bool {
 
 fn check_tcp_health(host: &str, port: u16) -> bool {
     let addr: String = format!("{}:{}", host, port);
-    match TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_secs(5)) {
-        Ok(_) => true,
+    match addr.parse() {
+        Ok(socket_addr) => match TcpStream::connect_timeout(&socket_addr, Duration::from_secs(5)) {
+            Ok(_) => true,
+            Err(_) => false,
+        },
         Err(_) => false,
     }
 }
@@ -53,14 +56,17 @@ fn check_udp_health(host: &str, port: u16) -> bool {
     let addr: String = format!("{}:{}", host, port);
     match UdpSocket::bind("0.0.0.0:0") {
         Ok(socket) => {
-            if let Ok(_) = socket.connect(addr) {
+            if let Ok(_) = socket.connect(&addr) {
                 match socket.send(&[1]) {
                     Ok(_) => {
                         let mut buf = [0; 1];
-                        socket.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
-                        match socket.recv(&mut buf) {
-                            Ok(_) => true,
-                            Err(_) => false,
+                        if let Ok(_) = socket.set_read_timeout(Some(Duration::from_secs(5))) {
+                            match socket.recv(&mut buf) {
+                                Ok(_) => true,
+                                Err(_) => false,
+                            }
+                        } else {
+                            false
                         }
                     },
                     Err(_) => false,
