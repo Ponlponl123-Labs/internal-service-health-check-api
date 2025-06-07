@@ -2,8 +2,7 @@ use internal_service_health_check_api::ThreadPool;
 mod health_check;
 use health_check::{get_service_config, check_service_health};
 use std::{
-    io::{prelude::*, BufReader},
-    net::{TcpListener, TcpStream},
+    env, io::{prelude::*, BufReader}, net::{TcpListener, TcpStream}
 };
 
 fn handle_connection(mut stream: TcpStream) {
@@ -71,10 +70,11 @@ fn handle_connection(mut stream: TcpStream) {
 }
 
 fn main() {
-    let listener: TcpListener = TcpListener::bind("0.0.0.0:8080").unwrap();
+    let port: String = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+    let listener: TcpListener = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
     let pool: ThreadPool = ThreadPool::new(4);
     
-    println!("Server listening on port 8080");
+    println!("Server listening on port {}", listener.local_addr().unwrap().port());
 
     for stream in listener.incoming() {
         match stream {

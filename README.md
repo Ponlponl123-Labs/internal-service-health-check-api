@@ -7,6 +7,8 @@ Link to: [internal-health-check-api](https://github.com/Ponlponl123-Labs/interna
 
 - Format:
     ```env
+    PORT=8080 // Default HTTP port is 8080
+    
     {SERVICE_NAME}_HEALTH_HOST // target host
     {SERVICE_NAME}_HEALTH_PORT // port number
     {SERVICE_NAME}_HEALTH_TYPE // this should be "TCP" or "UDP"
