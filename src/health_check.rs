@@ -1,0 +1,74 @@
+use std::env;
+use std::net::{TcpStream, UdpSocket};
+use std::time::Duration;
+
+#[derive(Debug)]
+pub struct HealthCheckConfig {
+    pub host: String,
+    pub port: u16,
+    pub protocol: String,
+}
+
+pub fn get_service_config(service_name: &str) -> Option<HealthCheckConfig> {
+    let upper_service: String = service_name.to_uppercase();
+    let host_key: String = format!("{}_HEALTH_HOST", upper_service); // Hostname
+    let port_key: String = format!("{}_HEALTH_PORT", upper_service); // Port Number
+    let proc_key: String = format!("{}_HEALTH_TYPE", upper_service); // Protocal
+
+    let host: String = env::var(&host_key).ok()?;
+    let port: u16 = env::var(&port_key)
+        .ok()?
+        .parse::<u16>()
+        .ok()?;
+    let protocol: String = env::var(&proc_key).ok()?;
+
+    if protocol != "TCP" && protocol != "UDP" {
+        return None;
+    }
+
+    Some(HealthCheckConfig {
+        host,
+        port,
+        protocol,
+    })
+}
+
+pub fn check_service_health(config: &HealthCheckConfig) -> bool {
+    match config.protocol.as_str() {
+        "TCP" => check_tcp_health(&config.host, config.port),
+        "UDP" => check_udp_health(&config.host, config.port),
+        _ => false,
+    }
+}
+
+fn check_tcp_health(host: &str, port: u16) -> bool {
+    let addr: String = format!("{}:{}", host, port);
+    match TcpStream::connect_timeout(&addr.parse().unwrap(), Duration::from_secs(5)) {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+fn check_udp_health(host: &str, port: u16) -> bool {
+    let addr: String = format!("{}:{}", host, port);
+    match UdpSocket::bind("0.0.0.0:0") {
+        Ok(socket) => {
+            if let Ok(_) = socket.connect(addr) {
+                match socket.send(&[1]) {
+                    Ok(_) => {
+                        let mut buf = [0; 1];
+                        socket.set_read_timeout(Some(Duration::from_secs(5))).unwrap();
+                        match socket.recv(&mut buf) {
+                            Ok(_) => true,
+                            Err(_) => false,
+                        }
+                    },
+                    Err(_) => false,
+                }
+            } else {
+                false
+            }
+        },
+        Err(_) => false,
+    }
+}

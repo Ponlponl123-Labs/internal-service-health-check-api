@@ -1,4 +1,6 @@
 use internal_service_health_check_api::ThreadPool;
+mod health_check;
+use health_check::{get_service_config, check_service_health};
 use std::{
     io::{prelude::*, BufReader},
     net::{TcpListener, TcpStream},
@@ -14,9 +16,26 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line: &String| !line.is_empty())
         .collect();
     
-    let (status_line, content) = match &request_line[..] {
-        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "Hello World!"),
-        _ => ("HTTP/1.1 404 NOT FOUND", "ROUTE NOT FOUND"),
+    let (status_line, content) = if request_line.starts_with("GET /") && request_line.ends_with(" HTTP/1.1") {
+        let path: &str = request_line[5..request_line.len()-9].trim();
+        
+        match path {
+            "" => ("HTTP/1.1 200 OK", "Hello World!".to_string()),
+            service_name => {
+                match get_service_config(service_name) {
+                    Some(config) => {
+                        if check_service_health(&config) {
+                            ("HTTP/1.1 200 OK", format!("Service {} is healthy", service_name))
+                        } else {
+                            ("HTTP/1.1 503 Service Unavailable", format!("Service {} is not responding", service_name))
+                        }
+                    },
+                    None => ("HTTP/1.1 404 NOT FOUND", format!("Service {} not valid", service_name)),
+                }
+            }
+        }
+    } else {
+        ("HTTP/1.1 400 BAD REQUEST", "Invalid request".to_string())
     };
 
     let length: usize = content.len();
