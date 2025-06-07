@@ -23,3 +23,28 @@ Link to: [internal-health-check-api](https://github.com/Ponlponl123-Labs/interna
     DNS_HEALTH_PORT=53
     DNS_HEALTH_TYPE=TCP
     ```
+
+## Docker
+
+https://hub.docker.com/r/ponlponl123/internal-service-health-check-api
+
+### Pull
+
+```bash
+docker pull ponlponl123/internal-service-health-check-api
+```
+
+### docker-compose.yaml
+
+```yaml
+services:
+  internal-service-health-check-api:
+    image: ponlponl123/internal-service-health-check-api:latest
+    ports:
+      - 8080:8080
+    environment:
+      - WEB_HEALTH_HOST=1.1.1.1
+      - WEB_HEALTH_PORT=53
+      - WEB_HEALTH_TYPE=TCP
+    restart: always
+```
