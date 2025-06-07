@@ -72,11 +72,15 @@ fn handle_connection(mut stream: TcpStream) {
 fn main() {
     let port: String = env::var("PORT").unwrap_or_else(|_| "8080".to_string());
     let listener: TcpListener = TcpListener::bind(format!("0.0.0.0:{}", port)).unwrap();
-    let pool: ThreadPool = ThreadPool::new(4);
+    let max_threads = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4);
+    let pool: ThreadPool = ThreadPool::new(max_threads);
     
     println!("Server listening on port {}", listener.local_addr().unwrap().port());
 
     for stream in listener.incoming() {
+        let pool: &ThreadPool = &pool;
         match stream {
             Ok(stream) => {
                 pool.execute(move || {
