@@ -8,6 +8,8 @@ Link to: [internal-health-check-api](https://github.com/Ponlponl123-Labs/interna
 - Format:
     ```env
     PORT=8080 // Default HTTP port is 8080
+
+    SINGLE_THREADED=false // use thread?
     
     {SERVICE_NAME}_HEALTH_HOST // target host
     {SERVICE_NAME}_HEALTH_PORT // port number
@@ -45,6 +47,8 @@ services:
     ports:
       - 8080:8080
     environment:
+      - SINGLE_THREADED=true
+      
       - WEB_HEALTH_HOST=google.com
       - WEB_HEALTH_PORT=80
       - WEB_HEALTH_TYPE=TCP
